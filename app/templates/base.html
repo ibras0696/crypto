@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>{{ title or 'CryptoSwap' }}</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <!-- Tailwind CDN (для MVP; в проде — собрать отдельно) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/static/css/main.css" />
+  <link rel="icon" href="data:,">
+</head>
+<body class="min-h-screen bg-gradient-to-br from-sky-50 via-white to-slate-100 text-slate-800">
+  <nav class="bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-b border-slate-200 sticky top-0 z-40">
+    <div class="max-w-6xl mx-auto px-4">
+      <div class="flex items-center gap-4 py-3">
+        <a href="/" class="text-pink-600 font-bold text-lg tracking-tight">CryptoSwap</a>
+        <button id="navToggle" class="md:hidden ml-auto p-2 rounded border text-slate-600" aria-expanded="false" aria-controls="mainNav">≡</button>
+        <div id="mainNav" class="flex-1 md:flex items-center gap-6 hidden md:flex">
+          <a href="/" class="text-sm hover:text-pink-600">Обмен</a>
+          <a href="/admin" class="text-sm hover:text-pink-600">Админ</a>
+          <div class="md:ml-auto flex gap-2 pt-4 md:pt-0">
+            <button id="loginBtn" class="text-xs px-3 py-1.5 rounded bg-slate-900 text-white">Demo Login</button>
+            <button id="logoutBtn" class="hidden text-xs px-3 py-1.5 rounded border">Выйти</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+  <main class="max-w-5xl mx-auto px-4 py-10">
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="text-center text-xs text-slate-500 py-10">&copy; {{ year or 2025 }} CryptoSwap (MVP)</footer>
+  <!-- Mini Soundbar -->
+  <div id="soundBar" class="fixed bottom-4 right-4 bg-white/90 backdrop-blur border border-slate-200 shadow-lg rounded-full flex items-center gap-2 pl-3 pr-4 py-2 text-xs text-slate-600 z-50">
+    <button id="soundToggle" class="w-7 h-7 rounded-full bg-pink-600 text-white flex items-center justify-center text-base" aria-pressed="false" title="Звук уведомлений">🔔</button>
+    <input id="soundVolume" type="range" min="0" max="1" step="0.05" class="w-20 accent-pink-600">
+  </div>
+  <script src="/static/js/base.js"></script>
+</body>
+</html>

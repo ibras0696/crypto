@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1 class="text-2xl font-bold mb-6">Админ панель</h1>
+<div class="flex gap-4 mb-4">
+  <input id="filterStatus" placeholder="status" class="border px-2 py-1 rounded text-sm" />
+  <button id="reloadBtn" class="bg-slate-900 text-white px-3 py-1 rounded text-sm">Обновить</button>
+</div>
+<table class="w-full text-sm border-collapse" id="ordersTbl">
+  <thead>
+    <tr class="bg-slate-200 text-left">
+      <th class="p-2">ID</th>
+      <th class="p-2">User</th>
+      <th class="p-2">Pair</th>
+      <th class="p-2">Amount</th>
+      <th class="p-2">Status</th>
+      <th class="p-2">Actions</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+<div class="mt-8">
+  <h2 class="font-semibold mb-2">Объем (последние 7 дней)</h2>
+  <canvas id="volChart" height="120" class="w-full bg-white rounded"></canvas>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="/static/js/admin.js"></script>
+{% endblock %}

@@ -1,0 +1,11 @@
+/* Custom overrides / additions */
+body { font-feature-settings: "cv02","cv03","cv04","ss01"; }
+.table-tight th, .table-tight td { padding: 0.35rem 0.5rem; }
+.badge { display:inline-block; padding:2px 6px; border-radius:6px; font-size:10px; font-weight:500; background:#e2e8f0; }
+.badge.status-completed { background:#059669; color:#fff; }
+.badge.status-pending_payment { background:#f59e0b; color:#fff; }
+.badge.status-processing { background:#6366f1; color:#fff; }
+.badge.status-paid { background:#0ea5e9; color:#fff; }
+.badge.status-canceled { background:#dc2626; color:#fff; }
+.fade-in { animation:fade .3s ease; }
+@keyframes fade { from {opacity:0; transform:translateY(4px);} to {opacity:1; transform:translateY(0);} }

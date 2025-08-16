@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1 class="text-3xl font-bold mb-6">Онлайн обмен</h1>
+
+<div id="userBox" class="mb-8 hidden bg-white border rounded shadow p-4 text-sm"></div>
+
+<div class="grid lg:grid-cols-3 gap-8 items-start">
+  <div class="lg:col-span-2 space-y-8">
+    <form id="order-form" class="grid md:grid-cols-2 gap-6 bg-white shadow rounded-xl p-6">
+      <div class="md:col-span-2 text-sm text-slate-600">Создайте заявку обмена. Лимиты без KYC: {{ settings.UNVERIFIED_ORDER_MAX if settings else 1000 }} за одну и {{ settings.UNVERIFIED_DAILY_VOLUME_MAX if settings else 5000 }} в сутки.</div>
+      <div>
+        <label class="block text-xs font-semibold mb-1">Отдаю валюту (ID)</label>
+        <input name="from_currency" type="number" class="w-full border rounded px-3 py-2" required>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold mb-1">Получаю валюту (ID)</label>
+        <input name="to_currency" type="number" class="w-full border rounded px-3 py-2" required>
+      </div>
+      <div class="md:col-span-2">
+        <label class="block text-xs font-semibold mb-1">Сумма</label>
+        <input name="amount_from" step="0.0001" type="number" class="w-full border rounded px-3 py-2" required>
+      </div>
+      <div class="md:col-span-2">
+        <label class="block text-xs font-semibold mb-1">Payout details (кошелек для получения)</label>
+        <input name="payout_details" type="text" class="w-full border rounded px-3 py-2" placeholder="Ваш адрес для получения" />
+      </div>
+      <button class="md:col-span-2 bg-pink-600 hover:bg-pink-700 text-white font-semibold rounded px-4 py-2">Создать заявку</button>
+    </form>
+    <div>
+      <h2 class="font-semibold mb-2">Мои заявки</h2>
+      <table class="w-full text-xs border bg-white rounded" id="myOrdersTbl">
+        <thead class="bg-slate-200">
+          <tr>
+            <th class="p-2 text-left">ID</th>
+            <th class="p-2 text-left">Pair</th>
+            <th class="p-2 text-left">Amount</th>
+            <th class="p-2 text-left">Status</th>
+            <th class="p-2 text-left">Tx</th>
+          </tr>
+        </thead>
+        {% extends 'base.html' %}
+        {% block content %}
+        <h1 class="text-3xl font-bold mb-8">Обмен криптовалют</h1>
+
+        <div id="userBox" class="mb-8 hidden bg-gradient-to-r from-white to-sky-50 border rounded-xl shadow p-4 text-sm flex flex-wrap gap-4"></div>
+
+        <div class="grid xl:grid-cols-3 gap-8 items-start">
+          <!-- Exchange Panel -->
+          <div class="xl:col-span-2 space-y-8">
+            <div class="bg-white rounded-2xl shadow border p-6 relative overflow-hidden">
+              <div class="absolute inset-0 pointer-events-none opacity-5 bg-[radial-gradient(circle_at_30%_40%,#0ea5e9,transparent_60%)]"></div>
+              {% extends 'base.html' %}
+              {% block content %}
+              <h1 class="text-3xl font-bold mb-8">Обмен криптовалют</h1>
+
+              <div id="userBox" class="mb-8 hidden bg-gradient-to-r from-white to-sky-50 border rounded-xl shadow p-4 text-sm flex flex-wrap gap-4"></div>
+
+              <div class="grid xl:grid-cols-3 gap-8 items-start">
+                <!-- Exchange Panel -->
+                <div class="xl:col-span-2 space-y-8">
+                  <div class="bg-white rounded-2xl shadow border p-6 relative overflow-hidden">
+                    <div class="absolute inset-0 pointer-events-none opacity-5 bg-[radial-gradient(circle_at_30%_40%,#0ea5e9,transparent_60%)]"></div>
+                    <div class="flex items-center justify-between mb-4">
+                      <h2 class="font-semibold text-lg">Быстрый обмен</h2>
+                      <span id="rateInfo" class="text-xs text-slate-500"></span>
+                    </div>
+                    <form id="exchangeForm" class="space-y-6 relative">
+                      <div class="grid md:grid-cols-2 gap-6">
+                        <!-- Give -->
+                        <div class="relative border rounded-xl p-4 bg-slate-50/40">
+                          <label class="text-xs font-semibold text-sky-600 uppercase tracking-wide">Отдаю</label>
+                          <div class="mt-2 flex gap-2">
+                            <select id="fromCurrency" class="flex-1 border rounded px-3 py-2 text-sm bg-white"></select>
+                            <input id="amountFrom" type="number" step="0.00000001" min="0" placeholder="0.00" class="w-40 border rounded px-3 py-2 text-right font-mono text-sm" required />
+                          </div>
+                          <p class="mt-2 text-[10px] text-slate-500" id="limitsInfo"></p>
+                        </div>
+                        <!-- Get -->
+                        <div class="relative border rounded-xl p-4 bg-slate-50/40">
+                          <label class="text-xs font-semibold text-pink-600 uppercase tracking-wide">Получаю</label>
+                          <div class="mt-2 flex gap-2">
+                            <select id="toCurrency" class="flex-1 border rounded px-3 py-2 text-sm bg-white"></select>
+                            <input id="amountTo" type="number" step="0.00000001" min="0" placeholder="≈" class="w-40 border rounded px-3 py-2 text-right font-mono text-sm bg-slate-100" readonly />
+                          </div>
+                          <p class="mt-2 text-[10px] text-slate-500" id="reserveInfo"></p>
+                        </div>
+                        <!-- swap button -->
+                        <button type="button" id="swapBtn" class="md:absolute md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 bg-pink-600 text-white rounded-full w-10 h-10 flex items-center justify-center shadow hover:bg-pink-700 transition" title="Поменять местами">⇄</button>
+                      </div>
+                      <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                          <label class="block text-xs font-semibold mb-1">Адрес / Реквизиты для получения</label>
+                          <input id="payoutDetails" class="w-full border rounded px-3 py-2" placeholder="Ваш адрес" />
+                        </div>
+                        <div class="flex flex-col gap-2 text-xs text-slate-500">
+                          <div>Курс обновляется каждые 15 сек. Нажмите &laquo;Создать заявку&raquo; чтобы зафиксировать.</div>
+                          <div id="kycWarning" class="hidden text-amber-600 font-medium"></div>
+                        </div>
+                      </div>
+                      <div class="flex items-center gap-4">
+                        <button class="bg-pink-600 hover:bg-pink-700 text-white font-semibold rounded px-6 py-3 text-sm shadow" id="createOrderBtn">Создать заявку</button>
+                        <div id="toast" class="hidden text-xs px-3 py-2 rounded bg-slate-800 text-white"></div>
+                      </div>
+                    </form>
+                  </div>
+
+                  <!-- My Orders -->
+                  <div class="bg-white rounded-2xl border shadow p-6">
+                    <div class="flex items-center justify-between mb-4">
+                      <h2 class="font-semibold">Мои заявки</h2>
+                      <button id="refreshOrders" class="text-xs text-pink-600 hover:underline">Обновить</button>
+                    </div>
+                    <div class="overflow-x-auto -mx-4 px-4">
+                      <table class="w-full text-xs align-middle" id="myOrdersTbl">
+                        <thead class="text-[10px] uppercase tracking-wide text-slate-500">
+                          <tr>
+                            <th class="py-2 text-left">ID</th>
+                            <th class="py-2 text-left">Пара</th>
+                            <th class="py-2 text-left">Сумма</th>
+                            <th class="py-2 text-left">Статус</th>
+                            <th class="py-2 text-left">Tx</th>
+                          </tr>
+                        </thead>
+                        <tbody class="divide-y"></tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Side Panel -->
+                <div class="space-y-8">
+                  <form id="kycForm" class="bg-white/90 backdrop-blur rounded-2xl border shadow p-6 space-y-4 hidden">
+                    <h2 class="font-semibold flex items-center gap-2">Верификация <span class="text-[10px] px-2 py-0.5 rounded bg-slate-200" id="kycStatusBadge"></span></h2>
+                    <p class="text-xs text-slate-500 leading-relaxed">Для увеличения лимитов отправьте данные. Документ хранится в базе (MVP) — не используйте реальные данные.</p>
+                    <div>
+                      <label class="block text-xs font-semibold mb-1">Полное имя</label>
+                      <input name="full_name" class="w-full border rounded px-3 py-2 text-sm" required />
+                    </div>
+                    <div>
+                      <label class="block text-xs font-semibold mb-1">Документ (ID)</label>
+                      <input name="document_id" class="w-full border rounded px-3 py-2 text-sm" required />
+                    </div>
+                    <button class="bg-slate-900 hover:bg-slate-800 text-white rounded px-4 py-2 text-xs font-semibold">Отправить</button>
+                  </form>
+                  <div id="orderDetail" class="hidden bg-white rounded-2xl border shadow p-6 text-xs space-y-4"></div>
+                </div>
+              </div>
+
+              <template id="orderRowTpl">
+                <tr class="hover:bg-slate-50 transition">
+                  <td class="py-2 font-mono"></td>
+                  <td class="py-2"></td>
+                  <td class="py-2"></td>
+                  <td class="py-2"></td>
+                  <td class="py-2"><button class="text-pink-600 hover:underline" data-view>view</button></td>
+                </tr>
+              </template>
+
+              <script src="/static/js/index.js"></script>
+          }
+        let currentUserData=null;

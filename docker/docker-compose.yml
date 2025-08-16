@@ -1,0 +1,52 @@
+version: '3.9'
+services:
+  api:
+    build: ../
+    container_name: crypto_api
+    environment:
+      - POSTGRES_HOST=db
+      - POSTGRES_DB=crypto
+      - POSTGRES_USER=crypto
+      - POSTGRES_PASSWORD=crypto
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=change_me
+    depends_on:
+      - db
+      - redis
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=crypto
+      - POSTGRES_USER=crypto
+      - POSTGRES_PASSWORD=crypto
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+  redis:
+    image: redis:7-alpine
+  nginx:
+    image: nginx:1.25-alpine
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - certbot_www:/var/www/certbot
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+  certbot:
+    image: certbot/certbot
+    command: certonly --webroot --webroot-path=/var/www/certbot --email admin@example.com --agree-tos --no-eff-email -d example.com
+    volumes:
+      - certbot_www:/var/www/certbot
+  tests:
+    build:
+      context: ../
+      target: test
+    container_name: crypto_tests
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:///./test.db
+      - RATE_LIMIT_ENABLED=false
+    command: ["pytest", "-q"]
+    profiles: ["test"]
+volumes:
+  pg_data:
+  certbot_www:
