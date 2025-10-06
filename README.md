@@ -1,269 +1,254 @@
-# CryptoSwap (FastAPI Crypto Exchange MVP)
+# CryptoSwap — FastAPI Crypto Exchange MVP 🪙⚡
 
-Учебный минимальный прототип криптообменника (MVP). Служит учебным примером архитектуры FastAPI (Auth + Roles + Orders + Transactions + KYC + Analytics). **Не используйте в реальном продакшене без аудита безопасности.**
+Учебный минимальный прототип криптообменника на FastAPI. Показывает продакшн‑паттерны: JWT‑аутентификация и роли, заказы/транзакции, KYC, кэширование курсов через Redis и публичный REST Binance, миграции Alembic, простая админ‑панель на шаблонах.
 
-## Возможности
-- Регистрация / логин (JWT)
-- Роли: user / operator / admin + промоут эндпоинт
-- Создание / просмотр / фильтрация заявок, статусы + транзакции
-- KYC данные (хранение, статус, лимиты до верификации)
-- Курсы через Binance публичный REST + Redis кэш + last_good fallback
-- Управление валютами и резервами (admin/operator)
-- Аналитика объёмов (график Chart.js)
-- Audit лог действий
-- Alembic миграции
-- Простая админ панель (HTML + Tailwind + Chart.js)
-- Rate limiting (in-memory, опционально)
-- Глобальный обработчик ошибок, CORS, конфиг через pydantic-settings
+Важное предупреждение: это демонстрационный MVP. Не используйте в проде без аудита безопасности и доработок.
 
-## Стек
-Backend: FastAPI, SQLAlchemy 2 (async), PostgreSQL (asyncpg), Pydantic v2.
-Auth: JWT (python-jose) + bcrypt (passlib).
-Caching: Redis.
-Frontend: Jinja2, Tailwind CDN, Chart.js.
-Infra: Docker / docker-compose, Nginx, Alembic.
+<p align="left">
+  <img alt="Python" src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white">
+  <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-0.11x-009688?logo=fastapi&logoColor=white">
+  <img alt="SQLAlchemy" src="https://img.shields.io/badge/SQLAlchemy-2.x%20async-8C2728">
+  <img alt="PostgreSQL" src="https://img.shields.io/badge/PostgreSQL-16-336791?logo=postgresql&logoColor=white">
+  <img alt="Redis" src="https://img.shields.io/badge/Redis-7-DC382D?logo=redis&logoColor=white">
+  <img alt="Alembic" src="https://img.shields.io/badge/Alembic-migrations-444">
+  <img alt="JWT" src="https://img.shields.io/badge/Auth-JWT%20(HS256)-6C2EB9">
+  <img alt="Templates" src="https://img.shields.io/badge/Jinja2-templates-FFB000">
+  <img alt="Chart.js" src="https://img.shields.io/badge/Chart.js-analytics-FF6384">
+  <img alt="Tests" src="https://img.shields.io/badge/pytest-ready-0A9EDC?logo=pytest&logoColor=white">
+</p>
 
-## 1. Быстрый локальный старт (без Docker)
+— Для найма: видно владение FastAPI/SQLAlchemy async, Redis, Alembic, аутентификацией и защитными механизмами (rate‑limit, глобальный error‑handler, CORS).  
+— Для разработчиков: компактный, но показательный каркас обменника.
+
+---
+
+## ✨ Возможности
+
+- Регистрация/логин (JWT, HS256), роли: user | operator | admin
+- Заявки на обмен (Orders) и связанные транзакции (on‑chain/internal)
+- KYC: хранение и статус, ограничения до верификации
+- Курсы через Binance public REST + Redis‑кэш + fallback на last_good
+- Управление валютами и резервами (для admin/operator)
+- Аналитика объёмов: простые графики на Chart.js (через шаблоны)
+- Audit‑лог действий (база для последующего расширения)
+- Alembic‑миграции
+- Rate limiting (in‑memory, для dev) и глобальный обработчик ошибок
+- CORS и конфигурация через pydantic‑settings
+
+См. код:  
+- Точка входа: [app/main.py](app/main.py) — роуты, CORS, глобальный error‑handler, простой rate‑limit, метрики  
+- Зависимости/утилиты: [app/core/deps.py](app/core/deps.py), [app/core/security.py](app/core/security.py)  
+- Модели: [app/models](app/models) (User, KYCData, Order, Transaction, Currency)  
+- Alembic: [alembic/env.py](alembic/env.py)
+
+---
+
+## 🧱 Архитектура
+
+```mermaid
+flowchart LR
+  User --> API[FastAPI]
+  API --> Auth[JWT Auth & Roles]
+  API --> Services[Business logic]
+  Services --> DB[(PostgreSQL/SQLite via SQLAlchemy async)]
+  Services --> Cache[(Redis)]
+  API --> Templates[Jinja2 + Static (Tailwind CDN/Chart.js)]
+```
+
+- Роутеры: `auth`, `orders`, `rates`, `currencies`
+- Кэш и курсы: Redis + публичный REST Binance (с фолбэком)
+- Метрики/ограничения: in‑memory rate limit в middleware + эндпоинт `/metrics`
+- Миграции: Alembic (из коробки)
+
+---
+
+## 📚 Модель данных (основное)
+
+- User: email, hashed_password, role, kyc_status, created_at; 1‑к‑1 KYCData
+- KYCData: full_name, document_id, user_id
+- Currency: code, name, reserve
+- Order: связи user/from_currency/to_currency, amount_from/amount_to, rate, status, created_at
+- Transaction: order_id, tx_hash, amount, status, created_at
+
+Файлы:  
+[app/models/user.py](app/models/user.py) · [app/models/order.py](app/models/order.py) · [app/models/transaction.py](app/models/transaction.py)
+
+---
+
+## 🔌 API (основные идеи)
+
+- Auth:
+  - POST `/auth/register` → создать пользователя
+  - POST `/auth/login` → выдать `access_token`
+- Currencies:
+  - GET `/currencies` → публичный список
+  - POST `/currencies` (admin/operator) → создать валюту
+  - PATCH `/currencies/{id}` (admin/operator) → изменить резерв
+- Orders:
+  - CRUD заявок, фильтрация по статусам, создание транзакций
+- Rates:
+  - GET `/rates/{PAIR}` → курс с кэшированием (например, BTCUSDT), валидация по `ALLOWED_RATE_QUOTES`
+- System:
+  - GET `/metrics` → простые показатели (реквесты, latency) — если включено
+  - Статика/шаблоны: `/` (демо‑панель), `/static/*`
+
+Пример защиты ролей: см. `require_roles()` в [app/core/deps.py](app/core/deps.py).  
+Глобальный error‑handler: в [app/main.py](app/main.py).
+
+---
+
+## ⚙️ Конфигурация (.env)
+
+Основные переменные (см. `app/core/config.py`, `app/main.py`, `app/core/deps.py`):
+
+```env
+# App
+APP_NAME=CryptoSwap
+DEBUG=True
+CORS_ORIGINS=["http://localhost:5173","http://127.0.0.1:5173"]  # [] чтобы отключить
+
+# Security
+SECRET_KEY=please-change-me
+ACCESS_TOKEN_EXPIRE_MINUTES=60
+
+# Database (выберите одно)
+DATABASE_URL=postgresql+asyncpg://app:app@localhost:5432/crypto
+# или для локального dev:
+# DATABASE_URL=sqlite+aiosqlite:///./dev.db
+
+# Redis
+REDIS_URL=redis://localhost:6379/0
+
+# Rates provider
+BINANCE_PUBLIC_URL=https://api.binance.com
+ALLOWED_RATE_QUOTES=["USDT","BUSD"]
+RATE_CACHE_TTL=10
+
+# Opt-in features
+RATE_LIMIT_ENABLED=true
+RATE_LIMIT_PER_MINUTE=60
+METRICS_ENABLED=true
+```
+
+---
+
+## 🚀 Быстрый старт (локально)
+
+Требования: Python 3.12+, Redis (для курсов), PostgreSQL или SQLite.
+
 ```bash
 python -m venv .venv
-source .venv/bin/activate          # Windows: .venv\\Scripts\\activate
-pip install -r crypto_exchange/requirements.txt
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+python -m pip install --upgrade pip
+pip install -r requirements.txt
 
-# Упростить: SQLite вместо PostgreSQL
-echo "DATABASE_URL=sqlite+aiosqlite:///./dev.db" > crypto_exchange/.env
+# Создайте .env в корне (см. раздел выше), для простоты можно начать с SQLite
+echo "DATABASE_URL=sqlite+aiosqlite:///./dev.db" >> .env
+echo "REDIS_URL=redis://localhost:6379/0" >> .env
+echo "SECRET_KEY=dev-secret" >> .env
 
-cd crypto_exchange
-alembic upgrade head               # применить миграции (для SQLite создаст файл)
-uvicorn crypto_exchange.app.main:app --reload
+# Миграции базы
+alembic upgrade head
 
-# Тесты (опционально из корня репо)
-pytest -q
+# Запуск API
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
-Открой http://127.0.0.1:8000 — кнопка Demo Login создаст пользователя.
 
-## 2. Docker Compose (локально / staging)
+Поднять инфраструктуру быстро:
 ```bash
-cd crypto_exchange/docker
-cp ../.env .env        # при необходимости отредактируй
+# Redis
+docker run -d --name redis -p 6379:6379 redis:7
+
+# PostgreSQL (опционально, если не используете SQLite)
+docker run -d --name pg \
+  -e POSTGRES_PASSWORD=app -e POSTGRES_USER=app -e POSTGRES_DB=crypto \
+  -p 5432:5432 postgres:16
+```
+
+Откройте http://127.0.0.1:8000 — доступна демо‑панель и интерактивная документация FastAPI (`/docs`).
+
+---
+
+## 🐳 Docker / Compose (пример)
+
+Если в репозитории есть docker‑манифесты, запустите:
+```bash
 docker compose up -d --build
+# Логи
 docker compose logs -f api
-```
-Миграции (если не авто):
-```bash
+# Миграции (если не применяются автоматически)
 docker compose exec api alembic upgrade head
 ```
-Остановить: `docker compose down`.
 
-Переназначить порт наружу (пример): в compose заменить `"8000:8000"` на `"9000:8000"`.
+(При отсутствии compose‑файлов используйте обычный Dockerfile‑флоу:
+соберите образ, пробросьте .env и порт, смонтируйте папку с шаблонами/статикой при необходимости.)
 
-### 2.1 Запуск тестов в Docker
-Образ имеет stage `test`, который запускает pytest во время сборки. Ошибка тестов ломает сборку.
+---
 
-Быстрый прогон только тестов:
+## 🧪 Тесты и качество
+
+Dev‑набор (requirements.txt):
+- pytest, pytest‑asyncio
+- ruff/mypy (при желании)
+
+Команды:
 ```bash
-cd crypto_exchange/docker
-docker build -t cryptoswap:test --target test ..
+pytest -q
+# опционально:
+# ruff check .
+# mypy .
 ```
 
-Через compose (профиль tests):
-```bash
-docker compose --profile test up --build --abort-on-container-exit --exit-code-from tests tests
-```
-Где сервис `tests` определён в `docker/docker-compose.yml`.
+---
 
-## 3. Пример .env
-Файл кладём в `crypto_exchange/` рядом с `alembic.ini`.
-```
-APP_NAME=CryptoSwap
-DEBUG=false
-SECRET_KEY=СЛУЧАЙНЫЙ_64_HEX
+## 🔐 Безопасность (важно для крипты)
 
-# PostgreSQL (в Docker: host=db)
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
-POSTGRES_USER=crypto
-POSTGRES_PASSWORD=crypto
-POSTGRES_DB=crypto
+- Меняйте `SECRET_KEY`, используйте отдельные ключи на окружение
+- Пересмотрите механики ролей и доступов под реальные кейсы
+- Продумайте хранение KYC и персональных данных (шифрование, ретеншн)
+- В продакшене добавьте:
+  - полноценный rate‑limit и WAF
+  - idempotency‑ключи на критичных эндпоинтах
+  - аудит, алерты, централизованные логи
+  - мониторинг/метрики (Prometheus/Grafana)
+  - очереди/таск‑процессы для реальных платёжных интеграций
 
-# Альтернатива (перекрывает выше)
-# DATABASE_URL=sqlite+aiosqlite:///./prod.db
+---
 
-REDIS_URL=redis://localhost:6379/0
-RATE_LIMIT_ENABLED=true
-RATE_LIMIT_PER_MINUTE=120
-METRICS_ENABLED=true
-CORS_ORIGINS=["https://example.com"]
-UNVERIFIED_ORDER_MAX=1000
-UNVERIFIED_DAILY_VOLUME_MAX=5000
-```
+## 🗺️ Roadmap (пример)
 
-## 4. Production (Ubuntu + systemd + Nginx)
-### 4.1. Зависимости
-```bash
-sudo apt update
-sudo apt install -y git python3-venv python3-pip postgresql redis-server nginx certbot python3-certbot-nginx
-```
-### 4.2. PostgreSQL
-```bash
-sudo -u postgres psql -c "CREATE USER crypto WITH PASSWORD 'crypto';"
-sudo -u postgres psql -c "CREATE DATABASE crypto OWNER crypto;"
-```
-### 4.3. Код
-```bash
-sudo adduser --system --group cryptoswap
-sudo mkdir -p /opt/cryptoswap
-sudo chown cryptoswap:cryptoswap /opt/cryptoswap
-cd /opt/cryptoswap
-sudo -u cryptoswap git clone <REPO_URL> .
-sudo -u cryptoswap python3 -m venv .venv
-sudo -u cryptoswap bash -c 'source .venv/bin/activate && pip install -r crypto_exchange/requirements.txt'
-sudo -u cryptoswap cp crypto_exchange/.env.example crypto_exchange/.env  # если есть пример
-```
-Отредактируй `.env`, убери строку DATABASE_URL если используешь POSTGRES_* переменные.
+- [ ] Разделение ролей по пермишенам (RBAC полнее)
+- [ ] Idempotent‑создание заявок и транзакций
+- [ ] Подтверждение e‑mail и восстановление пароля
+- [ ] S3‑хранилище для логов/экспортов
+- [ ] Вынесение rate‑limit и метрик в prod‑grade инструменты
 
-### 4.4. Миграции
-```bash
-cd /opt/cryptoswap/crypto_exchange
-source ../.venv/bin/activate
-alembic upgrade head
-```
-### 4.5. systemd unit `/etc/systemd/system/cryptoswap.service`
-```
-[Unit]
-Description=CryptoSwap FastAPI
-After=network.target
+---
 
-[Service]
-User=cryptoswap
-Group=cryptoswap
-WorkingDirectory=/opt/cryptoswap/crypto_exchange
-EnvironmentFile=/opt/cryptoswap/crypto_exchange/.env
-ExecStart=/opt/cryptoswap/.venv/bin/uvicorn crypto_exchange.app.main:app --host 0.0.0.0 --port 8000
-Restart=on-failure
-RestartSec=5
-LimitNOFILE=65535
+## 📂 Структура (ключевое)
 
-[Install]
-WantedBy=multi-user.target
-```
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable --now cryptoswap
-sudo systemctl status cryptoswap
-```
-### 4.6. Nginx
-`/etc/nginx/sites-available/cryptoswap.conf`
-```
-server {
-	listen 80;
-	server_name example.com;
-	location /static/ { proxy_pass http://127.0.0.1:8000/static/; }
-	location / {
-		proxy_pass http://127.0.0.1:8000/;
-		proxy_set_header Host $host;
-		proxy_set_header X-Real-IP $remote_addr;
-		proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-		proxy_set_header X-Forwarded-Proto $scheme;
-	}
-}
-```
-```bash
-sudo ln -s /etc/nginx/sites-available/cryptoswap.conf /etc/nginx/sites-enabled/
-sudo nginx -t && sudo systemctl reload nginx
-sudo certbot --nginx -d example.com -m admin@example.com --agree-tos --non-interactive
-```
-
-## 5. Основные эндпоинты
-
-## Переменные окружения
-Смотри `app/core/config.py`. Рекомендуется `.env` с:
-```
-SECRET_KEY=генерируй_случайно
-POSTGRES_HOST=db
-POSTGRES_USER=crypto
-POSTGRES_PASSWORD=crypto
-POSTGRES_DB=crypto
-REDIS_URL=redis://redis:6379/0
-RATE_LIMIT_ENABLED=true
-RATE_LIMIT_PER_MINUTE=120
-CORS_ORIGINS=["https://example.com"]
-```
-
-## Эндпоинты (основные)
-- POST /auth/register, /auth/login, GET /auth/me
-- POST /auth/promote/{user_id}/{role}
-- POST /auth/kyc/submit, POST /auth/kyc/{user_id}/status
-- POST /orders, GET /orders, GET /orders/{id}, POST /orders/{id}/status, GET /orders/my/list
-- POST /orders/{id}/transactions, GET /orders/{id}/transactions
-- GET /orders/analytics/summary
-- GET /public/rates, GET /public/pairs
-- CRUD: POST /currencies, PATCH /currencies/{id}, GET /currencies
-
-## 6. Модели
-Смотри `app/models/*.py` (User, KYCData, Currency, Order, Transaction, AuditLog).
-
-## 7. Rate Limiting
-Включить: `RATE_LIMIT_ENABLED=true`. Простая in-memory реализация (один процесс). Для продакшена заменить на Redis + lua/slowlog.
-
-## 8. Безопасность (MVP рекомендации)
-- Сменить SECRET_KEY перед деплоем
-- Ограничить CORS строго списком доменов
-- Вынести конфигурацию в `.env` и секреты в Vault/Secrets Manager
-- HTTPS через Nginx + LetsEncrypt
-- Логи без PII (document_id маскируется)
-- Rate limit /auth/* агрессивнее, чем общий (TODO)
-
-## 9. Метрики и здоровье
-`/health` — проверка БД и Redis. `/metrics` — простые счётчики (если включено).
-
-## 10. Типовой пользовательский поток
-1. Login или Demo Login.
-2. Создание заявки (лимиты без KYC).
-3. Отправка KYC → оператор подтверждает.
-4. Добавление транзакций, смена статусов.
-5. Аналитика и управление в админке.
-
-## 11. Тесты
-`pytest -q`. Тесты используют in-memory SQLite и dependency override.
-
-В Docker: см. раздел 2.1 (stage `test` и сервис `tests`).
-
-## 11.1 Healthcheck
-Финальный образ содержит HEALTHCHECK, обращающийся к `/health` внутри контейнера (каждые 30 сек).
-
-## 12. Траблшутинг
-| Симптом | Причина | Решение |
-|---------|---------|---------|
-| Белый экран | Нет валют / ошибка JS | Проверить консоль, создать валюты |
-| 500 /public/rates | Нет базовой quote (USDT) | Добавить валюту USDT |
-| 429 Too Many Requests | Rate limit включён | RATE_LIMIT_ENABLED=false в .env |
-| getaddrinfo failed | Postgres недоступен | Исправить HOST или SQLite |
-| ModuleNotFoundError crypto_exchange | Запуск из неправильного каталога | Запустить из родительского каталога или поменять импорт |
-| KYC форма не скрывается | Статус не verified | /auth/kyc/{id}/status -> verified |
-
-## 13. Что можно улучшить
-- Redis based rate limiting + Sliding Window
-- Расширенные метрики (Prometheus, OpenTelemetry)
-- Асинхронные задачи (Celery / RQ) для обновления курсов
-- Подтверждение транзакций через blockchain API
-- Полные тесты с фикстурами и mock внешнего API
-- Ротация и архивирование audit логов
-- UI: автообновление статусов, цветовые бейджи, локализация, пагинация
- - Собрать Tailwind (CLI / JIT) в собственный файл вместо CDN
-
-## 15. Структура фронтенда
 ```
 app/
-	templates/
-		base.html        # Общий layout, подключает tailwind + main.css + base.js
-		index.html       # Страница обмена, подключает index.js
-		admin.html       # Админ панель, подключает admin.js + Chart.js CDN
-	static/
-		css/
-			main.css       # Кастомные стили / утилиты / override
-		js/
-			base.js        # Общий JS: auth demo, навигация, звук, глобальные хелперы
-			index.js       # Логика страницы обмена: курсы, заявки, KYC, транзакции
-			admin.js       # Логика админки: заказы, статусы, аналитика
+  main.py                 # FastAPI, CORS, middleware rate-limit, /metrics, шаблоны/статика
+  core/
+    deps.py               # Redis, текущий пользователь, роли, курсы (Binance+Redis)
+    security.py           # пароли (bcrypt) и JWT
+    config.py             # настройки (pydantic-settings)
+    database.py           # engine/session/Base (async)
+  models/
+    user.py               # User, KYCData
+    order.py              # Order (статусы, связи)
+    transaction.py        # Transaction
+    currency.py           # Currency (код/название/резерв)
+  routers/
+    auth.py               # регистрация/логин/JWT
+    orders.py             # CRUD заказов, транзакции
+    rates.py              # получение курсов
+    currencies.py         # управление валютами/резервами
+  templates/, static/     # простая админ/демо-панель
+alembic/                  # миграции
+alembic.ini
+requirements.txt
 ```
-Inline-скрипты вынесены для читаемости и кеширования.
+
+---
